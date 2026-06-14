@@ -35,4 +35,6 @@ desktop.ini
 
 # Logs
 *.log
-logs/
+logs/node_modules/
+.env
+dist/
