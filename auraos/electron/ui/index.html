@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:8000 https:">
+<title>AuraOS</title>
+<style>
+:root {
+  --bg:#07090F; --surface:#0D1117; --card:#161B22; --card2:#1C2333;
+  --border:#21262D; --border2:#30363D;
+  --accent:#3B82F6; --accent2:#1D4ED8; --accent-glow:rgba(59,130,246,0.15);
+  --green:#10B981; --red:#F87171; --orange:#F59E0B; --purple:#A78BFA;
+  --text:#E6EDF3; --muted:#7D8590; --light:#CDD9E5;
+  --tab-h:36px; --nav-h:44px; --status-h:22px; --ai-w:360px;
+  --font:-apple-system,'Segoe UI',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);font-family:var(--font);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none;transition:background .4s,color .3s;}
+.titlebar{height:var(--tab-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;-webkit-app-region:drag;flex-shrink:0;}
+.win-controls{display:flex;align-items:center;gap:6px;padding:0 12px;-webkit-app-region:no-drag;flex-shrink:0;}
+.win-btn{width:12px;height:12px;border-radius:50%;border:none;cursor:pointer;}
+.btn-close{background:#FF5F57;}.btn-min{background:#FFBD2E;}.btn-max{background:#28C840;}
+.tabs-strip{flex:1;display:flex;align-items:center;overflow:hidden;gap:1px;height:100%;-webkit-app-region:no-drag;}
+.tab{height:100%;min-width:140px;max-width:220px;display:flex;align-items:center;gap:7px;padding:0 10px 0 12px;background:transparent;border-right:1px solid var(--border);cursor:pointer;transition:background .15s;flex-shrink:0;}
+.tab:hover{background:var(--card);}
+.tab.active{background:var(--card);border-bottom:2px solid var(--accent);}
+.tab-favicon{font-size:12px;flex-shrink:0;}
+.tab-title{font-size:12px;color:var(--muted);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.tab.active .tab-title{color:var(--text);}
+.tab-close{width:16px;height:16px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0;}
+.tab:hover .tab-close,.tab.active .tab-close{opacity:1;}
+.tab-close:hover{background:rgba(248,113,113,.2);color:var(--red);}
+.new-tab-btn{width:28px;height:28px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:0 4px;-webkit-app-region:no-drag;}
+.new-tab-btn:hover{background:var(--card);color:var(--text);}
+.navbar{height:var(--nav-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0;}
+.nav-btn{width:28px;height:28px;background:none;border:none;border-radius:6px;color:var(--muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.nav-btn:hover{background:var(--card);color:var(--text);}
+.address-wrap{flex:1;position:relative;}
+.address-bar{width:100%;height:30px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:0 36px;color:var(--text);font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.address-bar:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.address-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted);pointer-events:none;}
+.address-go{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;}
+.nav-right{display:flex;align-items:center;gap:4px;}
+.mode-badge{height:22px;padding:0 10px;border-radius:5px;font-size:10px;font-weight:700;display:none;align-items:center;gap:5px;font-family:monospace;letter-spacing:.5px;text-transform:uppercase;}
+.mode-badge.visible{display:flex;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:var(--green);}
+.ai-toggle-btn{height:28px;padding:0 12px;background:linear-gradient(135deg,#1D4ED8,#7C3AED);border:none;border-radius:7px;color:white;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;-webkit-app-region:no-drag;}
+.ai-toggle-btn.active{box-shadow:0 0 14px rgba(124,58,237,.6);}
+.nav-icon-btn{width:28px;height:28px;background:none;border:none;border-radius:6px;color:var(--muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.nav-icon-btn:hover{background:var(--card);color:var(--text);}
+.main{flex:1;display:flex;overflow:hidden;}
+.content-area{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+.page{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.page.active{display:flex;}
+webview{flex:1;width:100%;border:none;}
+.newtab-page{background:var(--bg);align-items:center;padding:40px 20px;gap:28px;}
+.nt-greeting h1{font-size:38px;font-weight:300;letter-spacing:-1px;margin-bottom:6px;text-align:center;}
+.nt-greeting h1 span{font-weight:600;color:var(--accent);}
+.nt-greeting p{font-size:13px;color:var(--muted);text-align:center;}
+.nt-search{width:100%;max-width:580px;position:relative;}
+.nt-search input{width:100%;height:46px;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:0 18px 0 46px;font-size:14px;color:var(--text);outline:none;transition:all .2s;font-family:var(--font);}
+.nt-search input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow);}
+.nt-search .si{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:17px;pointer-events:none;}
+.widgets-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:760px;}
+.widget-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;cursor:pointer;transition:all .2s;}
+.widget-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.wc-icon{font-size:22px;margin-bottom:8px;display:block;}
+.wc-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.wc-value{font-size:15px;font-weight:600;color:var(--text);}
+.wc-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.quick-sites{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:760px;}
+.quick-site{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.quick-site:hover{border-color:var(--accent);color:var(--text);}
+.setup-page{background:var(--bg);align-items:center;justify-content:center;padding:40px;}
+.setup-wrap{width:100%;max-width:520px;}
+.setup-logo{text-align:center;margin-bottom:32px;}
+.setup-logo h1{font-size:44px;font-weight:700;color:var(--accent);letter-spacing:-2px;}
+.setup-logo p{color:var(--muted);font-size:13px;margin-top:4px;}
+.setup-dots{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:28px;}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:background .3s;}
+.sdot.active{background:var(--accent);}.sdot.done{background:var(--green);}
+.setup-card{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:28px;}
+.setup-card h2{font-size:18px;font-weight:600;margin-bottom:6px;}
+.setup-card > p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.inp{width:100%;height:38px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:0 12px;color:var(--text);font-size:13px;outline:none;margin-bottom:10px;font-family:var(--font);}
+.inp:focus{border-color:var(--accent);}
+.inp-label{font-size:11px;color:var(--muted);margin-bottom:4px;display:block;font-weight:500;text-transform:uppercase;letter-spacing:.5px;}
+.btn-primary{width:100%;height:38px;background:linear-gradient(135deg,var(--accent2),#7C3AED);border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-secondary{width:100%;height:38px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;margin-top:6px;}
+.setup-textarea{width:100%;min-height:80px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px;color:var(--text);font-size:13px;outline:none;resize:none;margin-bottom:10px;font-family:var(--font);line-height:1.5;}
+.setup-textarea:focus{border-color:var(--accent);}
+.plan-preview{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px;margin:12px 0;display:none;}
+.pp-title{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--purple);text-transform:uppercase;font-family:monospace;margin-bottom:8px;}
+.pp-text{font-size:12px;color:var(--light);line-height:1.6;margin-bottom:10px;}
+.plan-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.ptag{font-size:10px;padding:2px 8px;border-radius:12px;font-family:monospace;}
+.ptag-theme{background:rgba(59,130,246,.15);color:#60A5FA;border:1px solid rgba(59,130,246,.25);}
+.ptag-block{background:rgba(248,113,113,.15);color:#FCA5A5;border:1px solid rgba(248,113,113,.25);}
+.ptag-widget{background:rgba(16,185,129,.15);color:#6EE7B7;border:1px solid rgba(16,185,129,.25);}
+.settings-page{background:var(--bg);flex-direction:row;overflow:hidden;}
+.settings-sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:16px 8px;flex-shrink:0;overflow-y:auto;}
+.ss-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:4px 10px 8px;}
+.ss-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;margin-bottom:2px;}
+.ss-item:hover{background:var(--card);color:var(--text);}
+.ss-item.active{background:var(--accent-glow);color:var(--accent);}
+.ss-icon{font-size:14px;flex-shrink:0;}
+.settings-content{flex:1;padding:28px 32px;overflow-y:auto;}
+.sc-section{display:none;}.sc-section.active{display:block;}
+.sc-title{font-size:20px;font-weight:600;margin-bottom:4px;}
+.sc-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.sc-group{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.sc-row{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:12px;}
+.sc-row:last-child{border-bottom:none;}
+.sc-row-left{flex:1;}
+.sr-label{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
+.sr-sub{font-size:11px;color:var(--muted);line-height:1.4;}
+.toggle{width:36px;height:20px;background:var(--border2);border:none;border-radius:10px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:white;border-radius:50%;transition:transform .2s;}
+.toggle.on::after{transform:translateX(16px);}
+.sc-input{height:32px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:0 10px;color:var(--text);font-size:12px;outline:none;width:180px;}
+.sc-input:focus{border-color:var(--accent);}
+.sc-btn{height:30px;padding:0 14px;background:var(--card2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer;white-space:nowrap;}
+.sc-btn:hover{border-color:var(--accent);color:var(--accent);}
+.sc-btn-danger{border-color:rgba(248,113,113,.3);color:var(--red);}
+.sc-btn-danger:hover{background:rgba(248,113,113,.1);border-color:var(--red);}
+.sc-tag-list{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;min-height:40px;}
+.sc-tag{display:flex;align-items:center;gap:5px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:20px;padding:3px 10px;font-size:11px;color:#FCA5A5;}
+.sc-tag-remove{background:none;border:none;color:#FCA5A5;cursor:pointer;font-size:12px;padding:0;}
+.sc-tag-add{display:flex;gap:6px;padding:0 16px 14px;}
+.sc-tag-add input{flex:1;height:30px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:0 10px;color:var(--text);font-size:12px;outline:none;}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 16px;}
+.theme-opt{border:2px solid var(--border2);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.theme-opt.selected{border-color:var(--accent);}
+.theme-opt .to-swatch{height:20px;border-radius:4px;margin-bottom:6px;}
+.theme-opt .to-name{font-size:11px;color:var(--muted);font-weight:500;}
+.theme-opt.selected .to-name{color:var(--accent);}
+.profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),#7C3AED);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;flex-shrink:0;}
+.identity-box{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--light);line-height:1.6;min-height:60px;}
+.ai-textarea{width:100%;min-height:70px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;color:var(--text);font-size:12px;outline:none;resize:none;font-family:var(--font);line-height:1.5;}
+.ai-textarea:focus{border-color:var(--accent);}
+.vault-page{background:var(--bg);padding:32px;overflow-y:auto;}
+.vault-header{margin-bottom:24px;}
+.vault-header h2{font-size:22px;font-weight:600;margin-bottom:6px;}
+.vault-header p{font-size:13px;color:var(--muted);}
+.vault-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px;}
+.vault-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.vault-card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.vault-card-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;}
+.vault-field{margin-bottom:10px;}
+.vault-field label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:block;margin-bottom:4px;}
+.vault-input{width:100%;height:32px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:0 10px;color:var(--text);font-size:12px;outline:none;font-family:var(--font);}
+.vault-input:focus{border-color:var(--accent);}
+.vault-textarea{width:100%;min-height:80px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;outline:none;resize:vertical;font-family:var(--font);line-height:1.5;}
+.vault-textarea:focus{border-color:var(--accent);}
+.vault-save-btn{height:28px;padding:0 14px;background:var(--accent);border:none;border-radius:6px;color:white;font-size:12px;font-weight:600;cursor:pointer;}
+.vault-add-btn{height:34px;padding:0 14px;background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.vault-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+.custom-item{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:10px;}
+.custom-item-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.custom-item-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;}
+.custom-item-del:hover{color:var(--red);}
+.blocked-page{background:var(--bg);align-items:center;justify-content:center;text-align:center;padding:40px;}
+.bp-icon{font-size:56px;margin-bottom:16px;}
+.blocked-page h2{font-size:20px;font-weight:600;margin-bottom:8px;}
+.blocked-page p{font-size:13px;color:var(--muted);max-width:400px;line-height:1.6;margin-bottom:8px;}
+.bp-reason{font-size:12px;color:var(--orange);font-family:monospace;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:6px 14px;margin-bottom:20px;}
+.ai-panel{width:var(--ai-w);background:var(--surface);border-left:1px solid var(--border);display:none;flex-direction:column;flex-shrink:0;}
+.ai-panel.open{display:flex;}
+.ai-panel-hdr{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.aph-left{display:flex;align-items:center;gap:8px;}
+.aph-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.aph-title{font-size:13px;font-weight:600;color:var(--text);}
+.aph-sub{font-size:10px;color:var(--muted);}
+.ai-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;border-radius:4px;padding:2px 6px;}
+.ai-close:hover{background:var(--card);color:var(--text);}
+.ai-suggestions{padding:10px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sug-btn{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.sug-btn:hover{border-color:var(--accent);color:var(--accent);}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;}
+.chat-messages::-webkit-scrollbar{width:4px;}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.msg{max-width:90%;padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.55;}
+.msg-ai{background:var(--card);border:1px solid var(--border);color:var(--light);align-self:flex-start;border-radius:4px 10px 10px 10px;}
+.msg-user{background:linear-gradient(135deg,#1D4ED8,#7C3AED);color:white;align-self:flex-end;border-radius:10px 4px 10px 10px;}
+.msg-system{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;align-self:center;border-radius:20px;padding:4px 12px;font-style:italic;max-width:100%;}
+.msg-action{background:var(--card);border:1px solid var(--border2);color:var(--light);align-self:flex-start;border-radius:4px 10px 10px 10px;width:100%;max-width:100%;}
+.ma-title{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-family:monospace;}
+.ma-result{font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+.ma-result:first-of-type{margin-top:2px;padding-top:0;border-top:none;}
+.ma-link{color:var(--accent);cursor:pointer;text-decoration:none;}
+.ma-link:hover{text-decoration:underline;}
+.chat-input-area{padding:10px;border-top:1px solid var(--border);flex-shrink:0;}
+.chat-input-wrap{display:flex;gap:6px;align-items:flex-end;background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 10px;transition:border-color .2s;}
+.chat-input-wrap:focus-within{border-color:var(--accent);}
+.chat-input{flex:1;background:none;border:none;color:var(--text);font-size:12px;outline:none;resize:none;min-height:18px;max-height:100px;font-family:var(--font);line-height:1.4;}
+.chat-send{background:var(--accent);border:none;color:white;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-hint{font-size:10px;color:var(--muted);margin-top:5px;text-align:center;}
+.statusbar{height:var(--status-h);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:16px;flex-shrink:0;}
+.sb-item{font-size:10px;color:var(--muted);font-family:monospace;display:flex;align-items:center;gap:4px;}
+.sb-dot{width:5px;height:5px;border-radius:50%;}
+.sb-dot-green{background:var(--green);}.sb-dot-blue{background:var(--accent);}
+.sb-right{margin-left:auto;display:flex;align-items:center;gap:16px;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="win-controls">
+    <button class="win-btn btn-close" onclick="window.aura.close()"></button>
+    <button class="win-btn btn-min" onclick="window.aura.minimize()"></button>
+    <button class="win-btn btn-max" onclick="window.aura.maximize()"></button>
+  </div>
+  <div class="tabs-strip" id="tabsStrip"></div>
+  <button class="new-tab-btn" onclick="openNewTab()">+</button>
+</div>
+
+<div class="navbar">
+  <button class="nav-btn" onclick="navBack()">&#8592;</button>
+  <button class="nav-btn" onclick="navForward()">&#8594;</button>
+  <button class="nav-btn" onclick="navReload()">&#8635;</button>
+  <button class="nav-btn" onclick="goHome()">⌂</button>
+  <div class="address-wrap">
+    <span class="address-icon" id="addrIcon">🔍</span>
+    <input class="address-bar" id="addressBar" type="text" placeholder="Search or enter URL..."
+      onkeydown="if(event.key==='Enter')navigate(this.value)" onfocus="this.select()"/>
+    <button class="address-go" onclick="navigate(document.getElementById('addressBar').value)">↵</button>
+  </div>
+  <div class="nav-right">
+    <div class="mode-badge" id="modeBadge"><span>●</span><span id="modeLabel">Mode</span></div>
+    <button class="nav-icon-btn" onclick="showPage('aura://vault')" title="Vault">🔐</button>
+    <button class="nav-icon-btn" onclick="showPage('aura://settings')" title="Settings">⚙</button>
+    <button class="nav-icon-btn" onclick="showPage('aura://downloads')" title="Downloads">⬇</button>
+    <button class="ai-toggle-btn" id="aiToggleBtn" onclick="toggleAI()">🤖 AI</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="content-area" id="contentArea">
+
+    <!-- NEW TAB -->
+    <div class="page newtab-page active" id="page-newtab">
+      <div class="nt-greeting" id="ntGreeting">
+        <h1>Good morning, <span id="ntName">friend</span>.</h1>
+        <p id="ntSub"><span id="ntConfigHint" style="color:var(--accent);cursor:pointer" onclick="showPage('aura://setup')">Set up your profile →</span></p>
+      </div>
+      <div class="nt-search">
+        <span class="si">🔍</span>
+        <input id="ntSearch" type="text" placeholder="Search the web, or type 'ai: do anything'..." onkeydown="handleNtSearch(event)"/>
+      </div>
+      <div class="widgets-grid">
+        <div class="widget-card" onclick="showPage('aura://settings/firewall')">
+          <span class="wc-icon">🛡️</span>
+          <div class="wc-label">Firewall</div>
+          <div class="wc-value" id="wFirewall">Off</div>
+          <div class="wc-sub" id="wFirewallSub">0 sites blocked</div>
+        </div>
+        <div class="widget-card" onclick="toggleAI()">
+          <span class="wc-icon">🤖</span>
+          <div class="wc-label">AI Brain</div>
+          <div class="wc-value">Groq · Llama 3.3</div>
+          <div class="wc-sub" id="wVisits">Ask me anything</div>
+        </div>
+        <div class="widget-card">
+          <span class="wc-icon">📊</span>
+          <div class="wc-label">Today</div>
+          <div class="wc-value" id="wToday">0 visits</div>
+          <div class="wc-sub" id="wTopDomain">No data yet</div>
+        </div>
+      </div>
+      <div class="quick-sites" id="quickSites">
+        <div class="quick-site" onclick="navigate('https://github.com')">🐙 GitHub</div>
+        <div class="quick-site" onclick="navigate('https://stackoverflow.com')">💬 Stack Overflow</div>
+        <div class="quick-site" onclick="navigate('https://wikipedia.org')">📖 Wikipedia</div>
+        <div class="quick-site" onclick="navigate('https://google.com')">G Google</div>
+        <div class="quick-site" onclick="navigate('https://youtube.com')">▶ YouTube</div>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="page setup-page" id="page-setup">
+      <div class="setup-wrap">
+        <div class="setup-logo"><h1>AuraOS</h1><p>Your intelligent personal browser</p></div>
+        <div class="setup-dots">
+          <div class="sdot active" id="sdot0"></div>
+          <div class="sdot" id="sdot1"></div>
+          <div class="sdot" id="sdot2"></div>
+        </div>
+        <div class="setup-card" id="setupStep0">
+          <h2>👤 Create your account</h2>
+          <p>Everything stays on your device. Nothing is sent to any server.</p>
+          <label class="inp-label">First name</label>
+          <input class="inp" id="setupFirstName" placeholder="Your first name"/>
+          <label class="inp-label">Last name</label>
+          <input class="inp" id="setupLastName" placeholder="Your last name"/>
+          <label class="inp-label">Email (stored locally)</label>
+          <input class="inp" id="setupEmail" type="email" placeholder="your@email.com"/>
+          <button class="btn-primary" onclick="setupNext(0)">Continue →</button>
+        </div>
+        <div class="setup-card" id="setupStep1" style="display:none">
+          <h2>🤖 Tell AI who you are</h2>
+          <p>One sentence. The AI independently configures everything — theme, firewall, monitoring. No templates. No limits.</p>
+          <textarea class="setup-textarea" id="setupIdentity" placeholder="e.g. I'm a CS student preparing for JEE, I need maximum focus, love cricket in evenings, and easily get distracted by social media."></textarea>
+          <div class="plan-preview" id="planPreview">
+            <div class="pp-title">🤖 AI Configuration Plan</div>
+            <div class="pp-text" id="planText"></div>
+            <div class="plan-tags" id="planTags"></div>
+          </div>
+          <button class="btn-primary" id="setupAIBtn" onclick="runAISetup()">🤖 Configure with AI</button>
+          <button class="btn-secondary" onclick="setupNext(1)">Skip for now</button>
+        </div>
+        <div class="setup-card" id="setupStep2" style="display:none">
+          <h2>✅ You're all set</h2>
+          <p>AuraOS is configured. Everything lives on your device.</p>
+          <div style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--muted);line-height:1.6" id="setupSummaryBox"></div>
+          <button class="btn-primary" onclick="finishSetup()">Start browsing →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page settings-page" id="page-settings">
+      <div class="settings-sidebar">
+        <div class="ss-title">Settings</div>
+        <div class="ss-item active" onclick="switchSettings('profile')" id="ss-profile"><span class="ss-icon">👤</span> You &amp; AuraOS</div>
+        <div class="ss-item" onclick="switchSettings('ai')" id="ss-ai"><span class="ss-icon">🤖</span> AI Control</div>
+        <div class="ss-item" onclick="switchSettings('appearance')" id="ss-appearance"><span class="ss-icon">🎨</span> Appearance</div>
+        <div class="ss-item" onclick="switchSettings('firewall')" id="ss-firewall"><span class="ss-icon">🛡️</span> Firewall</div>
+        <div class="ss-item" onclick="switchSettings('privacy')" id="ss-privacy"><span class="ss-icon">🔒</span> Privacy</div>
+        <div class="ss-item" onclick="switchSettings('shortcuts')" id="ss-shortcuts"><span class="ss-icon">⌨️</span> Shortcuts</div>
+        <div class="ss-item" onclick="switchSettings('about')" id="ss-about"><span class="ss-icon">ℹ️</span> About</div>
+      </div>
+      <div class="settings-content">
+        <div class="sc-section active" id="sc-profile">
+          <div class="sc-title">You &amp; AuraOS</div>
+          <div class="sc-sub">Your profile and how AuraOS knows you.</div>
+          <div class="sc-group">
+            <div class="sc-row">
+              <div class="profile-avatar" id="settingsAvatar">A</div>
+              <div class="sc-row-left">
+                <div class="sr-label" id="settingsName">Not set up</div>
+                <div class="sr-sub" id="settingsEmail">Complete setup to personalize AuraOS</div>
+              </div>
+              <button class="sc-btn" onclick="showPage('aura://setup')">Edit</button>
+            </div>
+          </div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Core Identity</div><div class="sr-sub">What you told AI.</div></div></div>
+            <div style="padding:0 16px 14px">
+              <div class="identity-box" id="identityDisplay">Not configured.</div>
+              <textarea class="ai-textarea" id="identityEdit" style="display:none;margin-top:8px"></textarea>
+              <div style="margin-top:8px;display:flex;gap:6px">
+                <button class="sc-btn" onclick="toggleIdentityEdit()" id="identityEditBtn">Edit</button>
+                <button class="sc-btn" style="display:none" id="identitySaveBtn" onclick="saveIdentity()">Save &amp; Reconfigure</button>
+              </div>
+            </div>
+          </div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Active Mode</div></div><span style="font-size:12px;color:var(--accent);font-family:monospace" id="activeModeDisplay">Normal</span></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Realtime AI Monitoring</div><div class="sr-sub">AI checks every site against your active mode</div></div><button class="toggle on" id="toggleRealtime" onclick="realtimeEnabled=!realtimeEnabled;this.classList.toggle('on')"></button></div>
+          </div>
+        </div>
+        <div class="sc-section" id="sc-ai">
+          <div class="sc-title">AI Control</div>
+          <div class="sc-sub">Unlimited control. Just tell it what you want.</div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">AI Engine</div></div><span style="font-size:12px;color:var(--accent);font-family:monospace">Groq · Llama 3.3 70B</span></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Model fallback</div><div class="sr-sub">Auto-switches models on rate limit</div></div><span style="font-size:11px;color:var(--green);font-family:monospace">Enabled</span></div>
+          </div>
+          <div class="sc-group">
+            <div class="sc-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+              <div class="sr-label">Reconfigure everything</div>
+              <div class="sr-sub" style="margin-bottom:6px">Tell AI something new about yourself.</div>
+              <textarea class="ai-textarea" id="reconfigInput" placeholder="e.g. I'm now a freelance designer working in Figma..."></textarea>
+              <button class="sc-btn" onclick="reconfigureAI()">🤖 Reconfigure</button>
+            </div>
+          </div>
+        </div>
+        <div class="sc-section" id="sc-appearance">
+          <div class="sc-title">Appearance</div>
+          <div class="sc-sub">AI creates any theme. Or pick a preset.</div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Theme</div><div class="sr-sub" id="currentThemeDesc">Dark Professional</div></div></div>
+            <div class="theme-grid">
+              <div class="theme-opt selected" onclick="applyPresetTheme('dark_professional',this)"><div class="to-swatch" style="background:linear-gradient(135deg,#07090F,#3B82F6)"></div><div class="to-name">Dark Pro</div></div>
+              <div class="theme-opt" onclick="applyPresetTheme('dark_luxury',this)"><div class="to-swatch" style="background:linear-gradient(135deg,#0D0A14,#A78BFA)"></div><div class="to-name">Luxury</div></div>
+              <div class="theme-opt" onclick="applyPresetTheme('hacker_green',this)"><div class="to-swatch" style="background:linear-gradient(135deg,#020B02,#00FF41)"></div><div class="to-name">Hacker</div></div>
+              <div class="theme-opt" onclick="applyPresetTheme('ocean_blue',this)"><div class="to-swatch" style="background:linear-gradient(135deg,#020D1A,#22D3EE)"></div><div class="to-name">Ocean</div></div>
+              <div class="theme-opt" onclick="applyPresetTheme('minimal_light',this)"><div class="to-swatch" style="background:linear-gradient(135deg,#F8FAFC,#3B82F6)"></div><div class="to-name">Light</div></div>
+              <div class="theme-opt" onclick="applyPresetTheme('warm_sunset',this)"><div class="to-swatch" style="background:linear-gradient(135deg,#160A00,#F59E0B)"></div><div class="to-name">Sunset</div></div>
+            </div>
+            <div style="padding:10px 16px 14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">Ask AI: "Bloomberg terminal" · "warm cozy feel" · "minimal white" · "cyberpunk neon"</div>
+          </div>
+        </div>
+        <div class="sc-section" id="sc-firewall">
+          <div class="sc-title">Firewall &amp; Rules</div>
+          <div class="sc-sub">AI manages this automatically.</div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Firewall active</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Realtime AI blocking</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          </div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Blocked sites (<span id="blockedCount">0</span>)</div></div></div>
+            <div class="sc-tag-list" id="blockedTagList"></div>
+            <div class="sc-tag-add">
+              <input id="addBlockInput" type="text" placeholder="e.g. instagram.com" onkeydown="if(event.key==='Enter')addBlockedSite()"/>
+              <button class="sc-btn" onclick="addBlockedSite()">+ Add</button>
+            </div>
+          </div>
+        </div>
+        <div class="sc-section" id="sc-privacy">
+          <div class="sc-title">Privacy &amp; Security</div>
+          <div class="sc-sub">All data on-device. Only AI queries go to Groq.</div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Behaviour logging</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Do Not Track</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Block third-party cookies</div></div><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+          </div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Clear all local data</div></div><button class="sc-btn sc-btn-danger" onclick="if(confirm('Clear everything?')){blockedSites=[];updateFirewall();loadBlockedTags();addMsg('system','Data cleared.')}">Clear</button></div>
+          </div>
+        </div>
+        <div class="sc-section" id="sc-shortcuts">
+          <div class="sc-title">Keyboard Shortcuts</div><div class="sc-sub"></div>
+          <div class="sc-group">
+            ${[['New tab','Ctrl+T'],['Close tab','Ctrl+W'],['Address bar','Ctrl+L'],['Toggle AI','Ctrl+Shift+A'],['Settings','Ctrl+,'],['Vault','Ctrl+Shift+V'],['Reload','Ctrl+R'],['Downloads','Ctrl+Shift+D']].map(([a,b])=>`<div class="sc-row"><div class="sc-row-left"><div class="sr-label">${a}</div></div><span style="font-size:11px;color:var(--accent);font-family:monospace;background:var(--surface);border:1px solid var(--border2);padding:3px 8px;border-radius:5px">${b}</span></div>`).join('')}
+          </div>
+        </div>
+        <div class="sc-section" id="sc-about">
+          <div class="sc-title">About AuraOS</div>
+          <div class="sc-sub">An AI-powered browser that thinks, learns, and acts.</div>
+          <div class="sc-group">
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Version</div></div><span style="font-size:12px;color:var(--muted);font-family:monospace">AuraOS 1.0</span></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">AI</div></div><span style="font-size:12px;color:var(--accent);font-family:monospace">Groq · Llama 3.3 70B + fallbacks</span></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Search</div></div><span style="font-size:12px;color:var(--muted);font-family:monospace">DuckDuckGo · AI fallback</span></div>
+            <div class="sc-row"><div class="sc-row-left"><div class="sr-label">Privacy</div></div><span style="font-size:12px;color:var(--green);font-family:monospace">No telemetry · No ads · 100% local</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VAULT -->
+    <div class="page vault-page" id="page-vault">
+      <div class="vault-header">
+        <h2>🔐 Personal Vault</h2>
+        <p>Your private storage. Everything stays on your device — never sent anywhere.</p>
+      </div>
+      <div class="vault-grid">
+        <div class="vault-card">
+          <div class="vault-card-hdr"><div class="vault-card-title">👤 Personal Details</div><button class="vault-save-btn" onclick="saveVault('personal')">Save</button></div>
+          <div class="vault-field"><label>Full Name</label><input class="vault-input" id="v-name" placeholder="Your full name"/></div>
+          <div class="vault-field"><label>Email</label><input class="vault-input" id="v-email" type="email" placeholder="your@email.com"/></div>
+          <div class="vault-field"><label>Phone</label><input class="vault-input" id="v-phone" placeholder="+91 ..."/></div>
+          <div class="vault-field"><label>Location</label><input class="vault-input" id="v-location" placeholder="City, Country"/></div>
+          <div class="vault-field"><label>Date of Birth</label><input class="vault-input" id="v-dob" type="date"/></div>
+          <div class="vault-field"><label>Address</label><textarea class="vault-textarea" id="v-address" placeholder="Full address" style="min-height:50px"></textarea></div>
+        </div>
+        <div class="vault-card">
+          <div class="vault-card-hdr"><div class="vault-card-title">💼 Professional</div><button class="vault-save-btn" onclick="saveVault('professional')">Save</button></div>
+          <div class="vault-field"><label>Job Title</label><input class="vault-input" id="v-jobtitle" placeholder="Software Engineer"/></div>
+          <div class="vault-field"><label>Company</label><input class="vault-input" id="v-company" placeholder="Company name"/></div>
+          <div class="vault-field"><label>LinkedIn</label><input class="vault-input" id="v-linkedin" placeholder="linkedin.com/in/..."/></div>
+          <div class="vault-field"><label>GitHub / Portfolio</label><input class="vault-input" id="v-github" placeholder="github.com/..."/></div>
+          <div class="vault-field"><label>Skills</label><textarea class="vault-textarea" id="v-skills" placeholder="Python, React, ML..." style="min-height:50px"></textarea></div>
+        </div>
+        <div class="vault-card">
+          <div class="vault-card-hdr"><div class="vault-card-title">📄 Resume / Bio</div><button class="vault-save-btn" onclick="saveVault('resume')">Save</button></div>
+          <div class="vault-field"><label>Professional Summary</label><textarea class="vault-textarea" id="v-bio" placeholder="Brief bio..."></textarea></div>
+          <div class="vault-field"><label>Education</label><textarea class="vault-textarea" id="v-education" placeholder="B.Tech CS, 2026..." style="min-height:50px"></textarea></div>
+          <div class="vault-field"><label>Experience</label><textarea class="vault-textarea" id="v-experience" placeholder="Key work experience..."></textarea></div>
+        </div>
+        <div class="vault-card">
+          <div class="vault-card-hdr"><div class="vault-card-title">🔑 Private Notes</div><button class="vault-save-btn" onclick="saveVault('notes')">Save</button></div>
+          <div class="vault-field"><label>Secure Notes (local only)</label><textarea class="vault-textarea" id="v-notes" placeholder="API keys, password hints..." style="min-height:200px"></textarea></div>
+        </div>
+        <div class="vault-card" style="grid-column:1/-1">
+          <div class="vault-card-hdr">
+            <div class="vault-card-title">📦 Custom Items</div>
+            <button class="vault-add-btn" onclick="addCustomItem()">+ Add Item</button>
+          </div>
+          <div id="customItems"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOWNLOADS -->
+    <div class="page" id="page-downloads" style="background:var(--bg);padding:32px;overflow-y:auto;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div>
+          <h2 style="font-size:22px;font-weight:600;margin-bottom:6px;">⬇ Downloads</h2>
+          <p style="font-size:13px;color:var(--muted)">Files automatically saved to your Downloads folder</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="sc-btn" onclick="loadDownloads()">↻ Refresh</button>
+          <button class="sc-btn sc-btn-danger" onclick="clearDownloads()">Clear all</button>
+        </div>
+      </div>
+      <div id="downloadsList"><p style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0">Loading...</p></div>
+    </div>
+
+    <!-- BLOCKED -->
+    <div class="page blocked-page" id="page-blocked">
+      <div class="bp-icon">🛡️</div>
+      <h2>Site blocked by AuraOS</h2>
+      <p id="blockedMsg">This domain is in your firewall block list.</p>
+      <div class="bp-reason" id="blockedReason" style="display:none"></div>
+      <button class="btn-primary" style="width:auto;padding:0 24px;margin-bottom:10px" onclick="showPage('aura://settings/firewall')">Manage firewall →</button>
+      <button style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer" onclick="goHome()">← Go home</button>
+    </div>
+
+  </div>
+
+  <!-- AI PANEL -->
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-panel-hdr">
+      <div class="aph-left">
+        <div class="aph-dot"></div>
+        <div><div class="aph-title">AuraOS AI</div><div class="aph-sub" id="aiSubtitle">Groq · Llama 3.3 70B</div></div>
+      </div>
+      <button class="ai-close" onclick="toggleAI()">✕</button>
+    </div>
+    <div class="ai-suggestions">
+      <button class="sug-btn" onclick="typeMsg('Take a screenshot of this page')">📸 Screenshot</button>
+      <button class="sug-btn" onclick="typeMsg('Summarize this page')">📋 Summarize</button>
+      <button class="sug-btn" onclick="typeMsg('search ')">🔍 Search</button>
+      <button class="sug-btn" onclick="typeMsg('Show my stats')">📊 Stats</button>
+      <button class="sug-btn" onclick="typeMsg('Enable study mode')">📚 Study</button>
+      <button class="sug-btn" onclick="typeMsg('Normal mode, remove all blocks')">🔓 Relax</button>
+      <button class="sug-btn" onclick="typeMsg('Enable developer mode')">💻 Dev</button>
+      <button class="sug-btn" onclick="typeMsg('Suggest improvements')">💡 Suggest</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg msg-system">AuraOS AI is ready</div>
+      <div class="msg msg-ai">Hi! I'm your browser's AI core. Tell me anything — search the web, change themes, enable modes, take screenshots, summarize pages. What do you need?</div>
+    </div>
+    <div class="chat-input-area">
+      <div class="chat-input-wrap">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="Tell me anything..."
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        <button class="chat-send" onclick="sendChat()">↑</button>
+      </div>
+      <div class="chat-hint">Enter to send · Shift+Enter for new line</div>
+    </div>
+  </div>
+</div>
+
+<div class="statusbar">
+  <div class="sb-item"><div class="sb-dot sb-dot-green"></div><span id="sbBackend">Backend</span></div>
+  <div class="sb-item"><div class="sb-dot sb-dot-blue"></div>Groq AI</div>
+  <div class="sb-item" id="sbFirewall">🛡️ 0 blocked</div>
+  <div class="sb-item" id="sbMode"></div>
+  <div class="sb-right">
+    <div class="sb-item" id="sbUrl"></div>
+    <div class="sb-item" id="sbTime"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let tabs = [], activeTabId = null
+let tabWebviews = {}, tabHistory = {}
+let profile = {}, blockedSites = [], vaultData = {}
+let currentUrl = 'aura://home', aiOpen = false
+let activeMode = '', realtimeContext = '', realtimeEnabled = true
+let realtimeBlocked = new Set()
+let setupPlan = null, setupStep = 0
+
+// ═══════════════════════════════════════════
+// THEME ENGINE
+// ═══════════════════════════════════════════
+function applyTheme(t) {
+  if (!t || typeof t !== 'object') return
+  const r = document.documentElement.style
+  const s = (k, v) => { if (v) r.setProperty(k, v) }
+  s('--bg',          t.bg_primary   || t.bg)
+  s('--surface',     t.bg_secondary || t.surface)
+  s('--card',        t.bg_card      || t.card)
+  s('--card2',       t.bg_card2     || t.card2)
+  s('--accent',      t.accent)
+  s('--accent2',     t.accent2)
+  if (t.accent) r.setProperty('--accent-glow', t.accent_glow || t.accent + '26')
+  s('--green',  t.green  || '#10B981')
+  s('--red',    t.red    || '#F87171')
+  s('--orange', t.orange || '#F59E0B')
+  s('--purple', t.purple || '#A78BFA')
+  s('--text',   t.text_primary  || t.text)
+  s('--muted',  t.text_secondary || t.muted)
+  s('--light',  t.light)
+  s('--border',  t.border)
+  s('--border2', t.border2)
+  if (t.font) r.setProperty('--font', t.font)
+  const d = document.getElementById('currentThemeDesc')
+  if (d && t.description) d.textContent = t.description
+}
+
+const PRESETS = {
+  dark_professional: {bg_primary:'#07090F',bg_secondary:'#0D1117',bg_card:'#161B22',bg_card2:'#1C2333',accent:'#3B82F6',accent2:'#1D4ED8',text_primary:'#E6EDF3',text_secondary:'#7D8590',light:'#CDD9E5',border:'#21262D',border2:'#30363D',font:'system-ui',description:'Dark Professional'},
+  dark_luxury:       {bg_primary:'#0D0A14',bg_secondary:'#16101F',bg_card:'#1E1530',bg_card2:'#261A3D',accent:'#A78BFA',accent2:'#7C3AED',text_primary:'#F1F5F9',text_secondary:'#9CA3AF',light:'#E2D9F3',border:'#2D1F4A',border2:'#3D2A5A',font:'system-ui',description:'Dark Luxury'},
+  hacker_green:      {bg_primary:'#020B02',bg_secondary:'#071007',bg_card:'#0B1A0B',bg_card2:'#0F220F',accent:'#00FF41',accent2:'#00CC33',text_primary:'#C8FFD4',text_secondary:'#4CAF50',light:'#A0F0A8',border:'#0D2B0D',border2:'#144014',font:"'Courier New',monospace",description:'Hacker Green'},
+  ocean_blue:        {bg_primary:'#020D1A',bg_secondary:'#051828',bg_card:'#083040',bg_card2:'#0C3D50',accent:'#22D3EE',accent2:'#0891B2',text_primary:'#E0F7FF',text_secondary:'#67C8D8',light:'#B0E8F4',border:'#0A3D52',border2:'#0D5068',font:'system-ui',description:'Ocean Blue'},
+  minimal_light:     {bg_primary:'#F8FAFC',bg_secondary:'#FFFFFF',bg_card:'#F1F5F9',bg_card2:'#E2E8F0',accent:'#3B82F6',accent2:'#1D4ED8',text_primary:'#1E293B',text_secondary:'#64748B',light:'#334155',border:'#E2E8F0',border2:'#CBD5E1',font:'system-ui',description:'Minimal Light'},
+  warm_sunset:       {bg_primary:'#160A00',bg_secondary:'#231000',bg_card:'#2D1500',bg_card2:'#3A1A00',accent:'#F59E0B',accent2:'#D97706',text_primary:'#FEF3C7',text_secondary:'#B45309',light:'#FDE68A',border:'#3D1E00',border2:'#4D2800',font:'system-ui',description:'Warm Sunset'},
+}
+
+function applyPresetTheme(name, el) {
+  document.querySelectorAll('.theme-opt').forEach(t => t.classList.remove('selected'))
+  if (el) el.classList.add('selected')
+  const t = PRESETS[name] || PRESETS.dark_professional
+  applyTheme(t)
+  profile.theme = t
+  saveProfile()
+}
+
+// ═══════════════════════════════════════════
+// MODE + REALTIME
+// ═══════════════════════════════════════════
+function setMode(mode, context) {
+  activeMode = mode || ''
+  realtimeContext = context || mode || ''
+  const badge   = document.getElementById('modeBadge')
+  const label   = document.getElementById('modeLabel')
+  const sbMode  = document.getElementById('sbMode')
+  const display = document.getElementById('activeModeDisplay')
+  const sub     = document.getElementById('aiSubtitle')
+  if (mode && mode !== 'normal_mode') {
+    badge.classList.add('visible')
+    const nice = mode.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase())
+    label.textContent = nice
+    sbMode.textContent = '● ' + nice
+    if (display) display.textContent = nice
+    if (sub) sub.textContent = 'Monitoring: ' + nice
+  } else {
+    badge.classList.remove('visible')
+    sbMode.textContent = ''
+    if (display) display.textContent = 'Normal'
+    if (sub) sub.textContent = 'Groq · Llama 3.3 70B'
+  }
+}
+
+async function checkSiteRealtime(domain) {
+  if (!realtimeEnabled || !activeMode || activeMode === 'normal_mode') return false
+  if (realtimeBlocked.has(domain)) return true
+  if (!window.aura) return false
+  try {
+    const r = await window.aura.backend('/ai/check_site', {
+      domain, mode: activeMode, context: realtimeContext, user_goal: realtimeContext
+    })
+    if (r.should_block) {
+      realtimeBlocked.add(domain)
+      blockedSites = [...new Set([...blockedSites, domain])]
+      await window.aura.applyPlan({ ...profile, blocked_sites: blockedSites })
+      updateFirewall(); loadBlockedTags()
+      addMsg('system', `🛡️ AI blocked ${domain} — ${r.reason}`)
+      return true
+    }
+  } catch(e) {}
+  return false
+}
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+function createTab(url = 'aura://home', title = 'New Tab') {
+  const id = Date.now()
+  tabs.push({ id, url, title, favicon: '🌐' })
+  tabHistory[id] = [url]
+  renderTabs()
+  switchTab(id)
+  return id
+}
+
+function switchTab(id) {
+  activeTabId = id
+  const tab = tabs.find(t => t.id === id)
+  if (!tab) return
+  renderTabs()
+  Object.values(tabWebviews).forEach(wv => { if (wv) wv.style.display = 'none' })
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = '' })
+  const url = tab.url
+  currentUrl = url
+  document.getElementById('addressBar').value = url
+  if (url.startsWith('aura://')) {
+    routeInternalPage(url)
+  } else {
+    if (tabWebviews[id]) {
+      tabWebviews[id].style.display = 'flex'
+      const liveUrl = tabWebviews[id].getURL ? tabWebviews[id].getURL() : url
+      document.getElementById('addressBar').value = liveUrl || url
+    } else {
+      loadWebview(url, id)
+    }
+  }
+}
+
+function closeTab(id, e) {
+  e?.stopPropagation()
+  if (tabWebviews[id]) { try { tabWebviews[id].remove() } catch(x) {} delete tabWebviews[id] }
+  delete tabHistory[id]
+  const idx = tabs.findIndex(t => t.id === id)
+  tabs = tabs.filter(t => t.id !== id)
+  if (!tabs.length) { createTab(); return }
+  if (activeTabId === id) switchTab(tabs[Math.min(idx, tabs.length - 1)].id)
+  renderTabs()
+}
+
+function openNewTab() { createTab() }
+
+function renderTabs() {
+  document.getElementById('tabsStrip').innerHTML = tabs.map(t => `
+    <div class="tab ${t.id === activeTabId ? 'active' : ''}" onclick="switchTab(${t.id})">
+      <span class="tab-favicon">${t.favicon}</span>
+      <span class="tab-title">${t.title}</span>
+      <button class="tab-close" onclick="closeTab(${t.id},event)">×</button>
+    </div>`).join('')
+}
+
+function updateTab(id, u) {
+  const t = tabs.find(t => t.id === id)
+  if (t) Object.assign(t, u)
+  renderTabs()
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+async function navigate(input) {
+  if (!input?.trim()) return
+  input = input.trim()
+  if (input.startsWith('aura://')) { showPage(input); return }
+
+  let url = input
+  if (!url.match(/^https?:\/\//)) {
+    // Only treat as direct URL if it has a dot and no spaces
+    // AND looks like a real domain (not a search query)
+    const looksLikeDomain = url.includes('.') && !url.includes(' ') && !url.includes('?')
+    url = looksLikeDomain
+      ? 'https://' + url
+      : 'https://www.google.com/search?q=' + encodeURIComponent(url)
+  }
+
+  let domain = ''
+  try { domain = new URL(url).hostname.replace(/^www\./, '') } catch(e) {}
+
+  // Only check block for the DESTINATION domain, not Google search
+  const isGoogleSearch = url.includes('www.google.com/search')
+  
+  if (!isGoogleSearch && window.aura) {
+    const chk = await window.aura.checkBlocked(url)
+    if (chk?.blocked) { showBlocked(chk.domain, 'In your firewall block list.'); return }
+  }
+
+  // Realtime AI check — only for real site navigation, not search
+  if (!isGoogleSearch && domain && activeMode && activeMode !== 'normal_mode') {
+    const rt = await checkSiteRealtime(domain)
+    if (rt) { showBlocked(domain, 'AI realtime block in ' + activeMode, true); return }
+  }
+
+  currentUrl = url
+  document.getElementById('addressBar').value = url
+  document.getElementById('sbUrl').textContent = domain
+  updateTab(activeTabId, { url, title: 'Loading...' })
+  if (!tabHistory[activeTabId]) tabHistory[activeTabId] = []
+  tabHistory[activeTabId].push(url)
+  loadWebview(url, activeTabId)
+}
+function loadWebview(url, tabId) {
+  const content = document.getElementById('contentArea')
+  if (tabWebviews[tabId]) { try { tabWebviews[tabId].remove() } catch(x) {} }
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = '' })
+  Object.values(tabWebviews).forEach(wv => { if (wv) wv.style.display = 'none' })
+
+  const wv = document.createElement('webview')
+  wv.src = url
+  wv.partition = 'persist:main'
+  wv.setAttribute('partition', 'persist:main')
+  wv.setAttribute('allowpopups', 'true')
+  wv.setAttribute('webpreferences', 'contextIsolation=false, javascript=yes, images=yes, plugins=yes')
+  wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+  wv.style.cssText = 'flex:1;width:100%;height:100%;border:none;display:flex;min-height:0;'
+  content.appendChild(wv)
+  tabWebviews[tabId] = wv
+
+  wv.addEventListener('did-start-loading', () => {
+    if (tabId === activeTabId) document.getElementById('addrIcon').textContent = '🔄'
+    updateTab(tabId, { title: 'Loading...' })
+  })
+  wv.addEventListener('did-finish-load', () => {
+    const title = wv.getTitle() || url
+    const newUrl = wv.getURL()
+    updateTab(tabId, { title: title.substring(0, 30), favicon: '🌐', url: newUrl })
+    if (tabId === activeTabId) {
+      document.getElementById('addressBar').value = newUrl
+      document.getElementById('addrIcon').textContent = '🔒'
+      currentUrl = newUrl
+    }
+    if (window.aura) window.aura.backend('/log/visit', { url: newUrl, duration: 0 })
+  })
+  wv.addEventListener('did-fail-load', e => {
+    if (e.errorCode !== -3 && e.errorCode !== -1) {
+      updateTab(tabId, { title: 'Error', favicon: '⚠️' })
+      console.error('Load failed:', e.errorCode, e.errorDescription, url)
+    }
+  })
+  wv.addEventListener('did-navigate', e => {
+    if (tabId === activeTabId) { document.getElementById('addressBar').value = e.url; currentUrl = e.url }
+    updateTab(tabId, { url: e.url })
+  })
+  wv.addEventListener('did-navigate-in-page', e => {
+    if (tabId === activeTabId && e.isMainFrame) { document.getElementById('addressBar').value = e.url; currentUrl = e.url }
+  })
+  wv.addEventListener('page-title-updated', e => {
+    updateTab(tabId, { title: (e.title || url).substring(0, 30) })
+  })
+  wv.addEventListener('will-navigate', async e => {
+    if (!activeMode || activeMode === 'normal_mode') return
+    let d = ''; try { d = new URL(e.url).hostname.replace(/^www\./, '') } catch(x) {}
+    if (!d || e.url.includes('google.com/search') || e.url.includes('duckduckgo.com')) return
+    if (window.aura) {
+      const sc = await window.aura.checkBlocked(e.url)
+      if (sc?.blocked) { wv.stop(); showBlocked(d, 'Block list.'); return }
+    }
+    const rt = await checkSiteRealtime(d)
+    if (rt) { wv.stop(); showBlocked(d, 'AI realtime block.', true) }
+  })
+  wv.addEventListener('new-window', e => { createTab(e.url, 'New Tab') })
+}
+
+function routeInternalPage(url) {
+  if (url === 'aura://home' || url === 'aura://newtab') {
+    showPageEl('page-newtab'); updateTab(activeTabId, { title:'New Tab', favicon:'⚡', url }); loadStats()
+  } else if (url === 'aura://setup') {
+    showPageEl('page-setup'); updateTab(activeTabId, { title:'Setup', favicon:'👤', url })
+  } else if (url === 'aura://vault') {
+    showPageEl('page-vault'); updateTab(activeTabId, { title:'Vault', favicon:'🔐', url }); loadVaultUI()
+  } else if (url === 'aura://downloads') {
+    showPageEl('page-downloads'); updateTab(activeTabId, { title:'Downloads', favicon:'⬇', url }); loadDownloads()
+  } else if (url.startsWith('aura://settings')) {
+    showPageEl('page-settings'); updateTab(activeTabId, { title:'Settings', favicon:'⚙️', url })
+    switchSettings(url.split('/')[2] || 'profile'); loadSettingsData()
+  }
+}
+
+function showPage(url, updateBar = true) {
+  currentUrl = url
+  if (updateBar) document.getElementById('addressBar').value = url
+  Object.values(tabWebviews).forEach(wv => { if (wv) wv.style.display = 'none' })
+  updateTab(activeTabId, { url })
+  routeInternalPage(url)
+  // Track in history for back button
+  if (!tabHistory[activeTabId]) tabHistory[activeTabId] = []
+  const h = tabHistory[activeTabId]
+  if (h[h.length - 1] !== url) h.push(url)
+}
+
+function showPageEl(id) {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = '' })
+  const el = document.getElementById(id); if (el) el.classList.add('active')
+}
+
+function goHome() { showPage('aura://home') }
+
+function navBack() {
+  const wv = tabWebviews[activeTabId]
+  if (wv && wv.style.display !== 'none' && wv.canGoBack()) {
+    wv.goBack()
+  } else {
+    const h = tabHistory[activeTabId] || []
+    if (h.length > 1) {
+      h.pop()
+      const prev = h[h.length - 1]
+      if (prev) {
+        if (prev.startsWith('aura://')) showPage(prev, true)
+        else { currentUrl = prev; loadWebview(prev, activeTabId) }
+      }
+    }
+  }
+}
+
+function navForward() {
+  const wv = tabWebviews[activeTabId]
+  if (wv && wv.style.display !== 'none' && wv.canGoForward()) wv.goForward()
+}
+
+function navReload() {
+  const wv = tabWebviews[activeTabId]
+  if (wv && wv.style.display !== 'none') wv.reload()
+  else routeInternalPage(currentUrl)
+}
+
+function showBlocked(domain, reason, isRT = false) {
+  document.getElementById('blockedMsg').textContent = isRT
+    ? `${domain} was blocked in realtime — distraction in ${activeMode}.`
+    : `${domain} is in your firewall block list.`
+  const r = document.getElementById('blockedReason')
+  if (reason && isRT) { r.textContent = reason; r.style.display = 'block' } else r.style.display = 'none'
+  Object.values(tabWebviews).forEach(wv => { if (wv) wv.style.display = 'none' })
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = '' })
+  document.getElementById('page-blocked').classList.add('active')
+  updateTab(activeTabId, { title: '🛡️ Blocked', favicon: '🛡️' })
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function switchSettings(sec) {
+  document.querySelectorAll('.ss-item').forEach(e => e.classList.remove('active'))
+  document.querySelectorAll('.sc-section').forEach(e => e.classList.remove('active'))
+  const si = document.getElementById('ss-' + sec); if (si) si.classList.add('active')
+  const sc = document.getElementById('sc-' + sec); if (sc) sc.classList.add('active')
+}
+function loadSettingsData() {
+  if (!profile.first_name) return
+  const name = (profile.first_name + ' ' + (profile.last_name || '')).trim()
+  const sn = document.getElementById('settingsName'); if (sn) sn.textContent = name
+  const se = document.getElementById('settingsEmail'); if (se) se.textContent = profile.email || 'No email'
+  const av = document.getElementById('settingsAvatar'); if (av) av.textContent = (profile.first_name || 'A')[0].toUpperCase()
+  const id = document.getElementById('identityDisplay'); if (id) id.textContent = profile.identity || 'Not configured.'
+  loadBlockedTags()
+}
+function loadBlockedTags() {
+  const list = document.getElementById('blockedTagList')
+  const count = document.getElementById('blockedCount')
+  if (!list) return
+  if (count) count.textContent = blockedSites.length
+  list.innerHTML = blockedSites.length
+    ? blockedSites.map(s => `<div class="sc-tag">${s}<button class="sc-tag-remove" onclick="removeBlockedSite('${s}')">×</button></div>`).join('')
+    : '<span style="padding:0 4px;font-size:12px;color:var(--muted)">No sites blocked</span>'
+}
+function addBlockedSite() {
+  const inp = document.getElementById('addBlockInput')
+  const val = inp.value.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0]
+  if (!val || blockedSites.includes(val)) return
+  blockedSites.push(val); inp.value = ''
+  loadBlockedTags(); updateFirewall(); saveRules()
+}
+function removeBlockedSite(site) {
+  blockedSites = blockedSites.filter(s => s !== site)
+  realtimeBlocked.delete(site)
+  loadBlockedTags(); updateFirewall(); saveRules()
+}
+function saveRules() {
+  if (window.aura) window.aura.applyPlan({ blocked_sites: blockedSites, allowed_sites: profile.allowed_sites || [] })
+}
+function toggleIdentityEdit() {
+  const box = document.getElementById('identityDisplay'), edit = document.getElementById('identityEdit')
+  const btn = document.getElementById('identityEditBtn'), sb = document.getElementById('identitySaveBtn')
+  if (edit.style.display === 'none') {
+    edit.value = profile.identity || ''; box.style.display = 'none'; edit.style.display = 'block'
+    btn.textContent = 'Cancel'; sb.style.display = 'inline-block'
+  } else {
+    box.style.display = 'block'; edit.style.display = 'none'
+    btn.textContent = 'Edit'; sb.style.display = 'none'
+  }
+}
+async function saveIdentity() {
+  const val = document.getElementById('identityEdit').value.trim(); if (!val) return
+  profile.identity = val; document.getElementById('identityDisplay').textContent = val
+  toggleIdentityEdit(); saveProfile()
+  addMsg('system', 'Identity updated. Reconfiguring...')
+  await runReconfigure(val)
+}
+async function reconfigureAI() {
+  const val = document.getElementById('reconfigInput').value.trim(); if (!val) return
+  addMsg('user', val); document.getElementById('reconfigInput').value = ''
+  await runReconfigure(val)
+}
+
+// ═══════════════════════════════════════════
+// RECONFIGURE — fixed JSON parsing
+// ═══════════════════════════════════════════
+async function runReconfigure(identity) {
+  addMsg('system', '🤖 AI is reconfiguring your browser...')
+  if (!window.aura) return
+  try {
+    const result = await window.aura.aiCommand(identity)
+    let plan = null
+    const raw = result.plan
+    if (typeof raw === 'object' && raw !== null) {
+      plan = raw
+    } else if (typeof raw === 'string') {
+      try { plan = JSON.parse(raw) } catch(e) {
+        const m = raw.match(/\{[\s\S]*\}/)
+        if (m) { try { plan = JSON.parse(m[0]) } catch(e2) {} }
+      }
+    }
+    if (!plan || typeof plan !== 'object') {
+      addMsg('ai', 'Configuration failed — AI response was malformed. Please try again.')
+      return
+    }
+    await window.aura.applyPlan(plan)
+    if (plan.theme) applyTheme(typeof plan.theme === 'object' ? plan.theme : PRESETS[plan.theme?.replace(/-/g,'_')] || PRESETS.dark_professional)
+    blockedSites = plan.blocked_sites || []
+    realtimeBlocked.clear()
+    if (plan.active_mode) setMode(plan.active_mode, plan.realtime_context || '')
+    if (plan.helpful_sites?.length) updateQuickSites(plan.helpful_sites)
+    updateFirewall(); loadBlockedTags()
+    profile.identity = identity; saveProfile()
+    addMsg('ai', `✅ ${plan.summary || 'Browser reconfigured.'}`)
+    if (plan.ai_message) addMsg('ai', plan.ai_message)
+    if (plan.profile_name) addMsg('system', `Profile: ${plan.profile_name}`)
+  } catch(e) {
+    addMsg('ai', 'Reconfiguration failed: ' + e.message)
+    console.error('Reconfigure error:', e)
+  }
+}
+
+// ═══════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════
+function setupNext(step) {
+  if (step === 0) {
+    const first = document.getElementById('setupFirstName').value.trim()
+    if (!first) { document.getElementById('setupFirstName').focus(); return }
+    profile.first_name = first
+    profile.last_name = document.getElementById('setupLastName').value.trim()
+    profile.email = document.getElementById('setupEmail').value.trim()
+  }
+  document.getElementById('setupStep' + step).style.display = 'none'
+  const dot = document.getElementById('sdot' + step)
+  if (dot) { dot.classList.remove('active'); dot.classList.add('done') }
+  setupStep = step + 1
+  const next = document.getElementById('setupStep' + setupStep)
+  if (next) { next.style.display = 'block'; const nd = document.getElementById('sdot' + setupStep); if (nd) nd.classList.add('active') }
+}
+async function runAISetup() {
+  const identity = document.getElementById('setupIdentity').value.trim(); if (!identity) return
+  profile.identity = identity
+  const btn = document.getElementById('setupAIBtn')
+  btn.disabled = true; btn.textContent = '🤖 Thinking deeply...'
+  if (window.aura) {
+    const result = await window.aura.aiCommand(identity)
+    btn.disabled = false; btn.textContent = '🤖 Configure with AI'
+    try {
+      const raw = result.plan
+      setupPlan = typeof raw === 'object' ? raw : JSON.parse(raw)
+      document.getElementById('planText').textContent = setupPlan.summary || 'Plan ready.'
+      const tags = document.getElementById('planTags'); tags.innerHTML = ''
+      const th = setupPlan.theme
+      if (th) tags.innerHTML += `<span class="ptag ptag-theme">🎨 ${typeof th==='object' ? th.name||'Custom' : th}</span>`
+      ;(setupPlan.blocked_sites || []).slice(0, 6).forEach(s => { tags.innerHTML += `<span class="ptag ptag-block">🚫 ${s}</span>` })
+      if ((setupPlan.blocked_sites || []).length > 6) tags.innerHTML += `<span class="ptag ptag-block">+${setupPlan.blocked_sites.length - 6} more</span>`
+      document.getElementById('planPreview').style.display = 'block'
+      btn.textContent = '✅ Apply & Continue'; btn.onclick = applySetupPlan
+    } catch(e) { btn.textContent = '🤖 Configure with AI'; console.error('Setup parse error:', e) }
+  }
+}
+async function applySetupPlan() {
+  if (setupPlan && window.aura) {
+    await window.aura.applyPlan(setupPlan)
+    const th = setupPlan.theme
+    if (th) applyTheme(typeof th === 'object' ? th : PRESETS[th?.replace(/-/g,'_')] || PRESETS.dark_professional)
+    blockedSites = setupPlan.blocked_sites || []
+    if (setupPlan.active_mode) setMode(setupPlan.active_mode, setupPlan.realtime_context || '')
+    if (setupPlan.helpful_sites?.length) updateQuickSites(setupPlan.helpful_sites)
+    Object.assign(profile, setupPlan); updateFirewall()
+  }
+  document.getElementById('setupSummaryBox').textContent = setupPlan ? (setupPlan.summary || 'Configured.') : 'Manual setup complete.'
+  setupNext(1)
+}
+function finishSetup() { saveProfile(); updateNewtab(); showPage('aura://home') }
+function saveProfile() { if (window.aura) window.aura.applyPlan({ ...profile, blocked_sites: blockedSites }) }
+
+// ═══════════════════════════════════════════
+// AI CHAT
+// ═══════════════════════════════════════════
+function toggleAI() {
+  aiOpen = !aiOpen
+  document.getElementById('aiPanel').classList.toggle('open', aiOpen)
+  document.getElementById('aiToggleBtn').classList.toggle('active', aiOpen)
+}
+function typeMsg(msg) {
+  document.getElementById('chatInput').value = msg
+  document.getElementById('chatInput').focus()
+  if (!msg.endsWith(' ')) sendChat()
+}
+async function sendChat() {
+  const inp = document.getElementById('chatInput')
+  const msg = inp.value.trim(); if (!msg) return
+  inp.value = ''; inp.style.height = 'auto'
+  addMsg('user', msg); await executeAI(msg)
+}
+
+async function executeAI(intent) {
+  if (!window.aura) { addMsg('ai', 'AI not connected.'); return }
+  const thinking = addMsg('ai', '...')
+  const vaultCtx = vaultData.personal ? `Name:${vaultData.personal.name||''},Email:${vaultData.personal.email||''}` : 'empty'
+  const profileCtx = profile.identity ? `Identity:${profile.identity},Mode:${activeMode||'none'},Blocked:${blockedSites.length}` : 'not configured'
+  try {
+    const result = await window.aura.executeAI(
+      intent,
+      currentUrl.startsWith('aura://') ? '' : currentUrl,
+      profileCtx, vaultCtx
+    )
+    if (!result?.success) { thinking.textContent = result?.plan?.message || 'Something went wrong. Try again.'; return }
+    const plan = result.plan
+    if (!plan) { thinking.textContent = 'No response from AI.'; return }
+    await executePlan(plan, thinking)
+  } catch(e) {
+    thinking.textContent = 'AI error: ' + (e.message || 'Unknown error')
+    console.error('executeAI error:', e)
+  }
+}
+
+// ═══════════════════════════════════════════
+// EXECUTE PLAN — fixed switch statement
+// ═══════════════════════════════════════════
+async function executePlan(plan, msgEl) {
+  if (!plan) return
+  const action = plan.action
+
+  // Check if message accidentally contains raw JSON
+  if (action === 'reply' || !action) {
+    const msg = plan.message || ''
+    const trimmed = msg.trim()
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        const inner = JSON.parse(trimmed)
+        if (inner.action && inner.action !== 'reply') {
+          await executePlan(inner, msgEl); return
+        }
+      } catch(e) {}
+    }
+    msgEl.textContent = msg || 'Done.'
+    return
+  }
+
+  if (action === 'multi' && plan.steps?.length) {
+    msgEl.textContent = plan.message || 'Executing plan...'
+    for (const step of plan.steps) {
+      const newMsg = addMsg('ai', '...')
+      await executePlan(step, newMsg)
+      await new Promise(r => setTimeout(r, 400))
+    }
+    return
+  }
+
+  if (action === 'theme') {
+    const t = plan.theme
+    if (typeof t === 'object') applyTheme(t)
+    else applyTheme(PRESETS[t?.replace(/-/g,'_')] || PRESETS.dark_professional)
+    profile.theme = plan.theme; saveProfile()
+    msgEl.textContent = plan.message || '🎨 Theme updated'
+    return
+  }
+
+  if (action === 'mode') {
+    blockedSites = plan.blocked_sites || []
+    realtimeBlocked.clear()
+    if (plan.theme) applyTheme(typeof plan.theme === 'object' ? plan.theme : PRESETS[plan.theme?.replace(/-/g,'_')] || PRESETS.dark_professional)
+    setMode(plan.mode, plan.realtime_context || plan.mode)
+    if (window.aura) await window.aura.applyPlan({ ...profile, blocked_sites: blockedSites, allowed_sites: plan.allowed_sites || [] })
+    updateFirewall(); loadBlockedTags()
+    if (plan.helpful_sites?.length) updateQuickSites(plan.helpful_sites)
+    msgEl.className = 'msg msg-action'
+    const helpful = (plan.helpful_sites || []).map(s => `
+      <div class="ma-result" style="padding:4px 0">
+        ${s.emoji||'🔗'} <span class="ma-link" onclick="navigate('https://${s.domain}')">${s.label||s.domain}</span>${s.reason?' — '+s.reason:''}
+      </div>`).join('')
+    msgEl.innerHTML = `<div class="ma-title">✅ ${(plan.mode||'').replace(/_/g,' ').toUpperCase()}</div>
+      <div class="ma-result">${plan.message||''}</div>
+      ${helpful ? `<div class="ma-result" style="margin-top:4px;color:var(--green);font-weight:600">Helpful sites:</div>${helpful}` : ''}
+      <div class="ma-result" style="color:var(--muted)">${blockedSites.length===0?'All sites accessible':`${blockedSites.length} sites blocked + AI monitors every new site`}</div>`
+    return
+  }
+
+  if (action === 'block') {
+    const domains = plan.domains || []
+    blockedSites = [...new Set([...blockedSites, ...domains])]
+    if (window.aura) await window.aura.applyPlan({ ...profile, blocked_sites: blockedSites })
+    updateFirewall(); loadBlockedTags()
+    msgEl.textContent = plan.message || `🛡️ ${domains.length} site(s) blocked. Total: ${blockedSites.length}`
+    return
+  }
+
+  if (action === 'unblock') {
+    const domains = plan.domains || []
+    blockedSites = blockedSites.filter(s => !domains.some(d => s.includes(d) || d.includes(s)))
+    domains.forEach(d => realtimeBlocked.delete(d))
+    if (window.aura) await window.aura.applyPlan({ ...profile, blocked_sites: blockedSites })
+    updateFirewall(); loadBlockedTags()
+    msgEl.textContent = plan.message || `✅ Unblocked. ${blockedSites.length} still blocked.`
+    return
+  }
+
+  if (action === 'navigate') {
+    navigate(plan.url)
+    msgEl.textContent = plan.message || `🌐 Opening ${plan.url}`
+    return
+  }
+
+  if (action === 'search') {
+    msgEl.textContent = `🔍 Searching "${plan.query}"...`
+    const r = await window.aura.automate('search', '', plan.query)
+    if (r.success) {
+      if (r.results?.length) {
+        msgEl.className = 'msg msg-action'
+        msgEl.innerHTML = `<div class="ma-title">🔍 ${plan.query}</div>` +
+          r.results.map(res => `
+            <div class="ma-result" style="cursor:pointer;padding:5px 0;border-bottom:1px solid var(--border)">
+              <span class="ma-link" onclick="navigate('${res.url.replace(/'/g,"\\'")}')">${res.title}</span>
+              ${res.snippet ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${res.snippet}</div>` : ''}
+            </div>`).join('')
+      } else if (r.ai_answer) {
+        msgEl.textContent = r.ai_answer
+      } else {
+        msgEl.textContent = `No results found for "${plan.query}"`
+      }
+    } else {
+      msgEl.textContent = `Search failed: ${r.error || 'Unknown error'}`
+    }
+    return
+  }
+
+  if (action === 'screenshot') {
+    const url = plan.url || (currentUrl.startsWith('aura://') ? '' : currentUrl)
+    if (!url || url.startsWith('aura://')) { msgEl.textContent = 'Navigate to a website first, then ask me to screenshot it.'; return }
+    msgEl.textContent = `📸 Fetching page info...`
+    const r = await window.aura.automate('screenshot', url, '')
+    if (r.success) {
+      msgEl.className = 'msg msg-action'
+      msgEl.innerHTML = `<div class="ma-title">📸 Page Info — ${url}</div>
+        <div class="ma-result">${r.description || 'Page loaded.'}</div>
+        ${r.note ? `<div class="ma-result" style="color:var(--orange);font-size:10px">${r.note}</div>` : ''}`
+    } else {
+      msgEl.textContent = `Failed: ${r.error || 'Could not load page'}`
+    }
+    return
+  }
+
+  if (action === 'summarize') {
+    const url = plan.url || (currentUrl.startsWith('aura://') ? '' : currentUrl)
+    if (!url || url.startsWith('aura://')) { msgEl.textContent = 'Navigate to a website first, then ask me to summarize it.'; return }
+    msgEl.textContent = `📋 Reading ${url}...`
+    const r = await window.aura.automate('summarize', url, '')
+    msgEl.textContent = r.success ? r.summary : (r.error || 'Could not load that page.')
+    return
+  }
+
+  if (action === 'multi_search') {
+    msgEl.textContent = `🔍 Researching...`
+    const r = await window.aura.backend('/automate/multi_search', { url: '', task: plan.query || plan.task || '' })
+    if (r.success) {
+      msgEl.className = 'msg msg-action'
+      msgEl.innerHTML = `<div class="ma-title">🔍 ${plan.query || plan.task}</div>
+        <div class="ma-result">${r.analysis}</div>
+        ${r.sources?.length ? `<div class="ma-result" style="color:var(--muted)">Sources: ${r.sources.slice(0,3).join(', ')}</div>` : ''}`
+    } else { msgEl.textContent = `Research failed: ${r.error}` }
+    return
+  }
+
+  if (action === 'extract') {
+    const url = plan.url || (currentUrl.startsWith('aura://') ? '' : currentUrl)
+    if (!url) { msgEl.textContent = 'Navigate to a page first.'; return }
+    msgEl.textContent = `🔎 Extracting from ${url}...`
+    const r = await window.aura.backend('/automate/extract', { url, task: plan.task || '' })
+    msgEl.textContent = r.success ? r.result : `Failed: ${r.error}`
+    return
+  }
+
+  if (action === 'stats') {
+    const s = await window.aura.backend('/stats')
+    msgEl.className = 'msg msg-action'
+    const topD = (s.top_domains || []).slice(0,5).map(d => `<div class="ma-result">${d.domain}: ${d.count}x</div>`).join('')
+    const rtB = (s.recent_blocks || []).slice(0,3).map(b => `<div class="ma-result">🚫 ${b.domain}</div>`).join('')
+    msgEl.innerHTML = `<div class="ma-title">📊 Browser Stats</div>
+      <div class="ma-result">Today: ${s.today_visits||0} visits</div>
+      <div class="ma-result">All time: ${s.total_visits||0} visits</div>
+      <div class="ma-result">AI blocked today: ${s.realtime_blocked_today||0}</div>
+      <div class="ma-result">Firewall: ${blockedSites.length} sites</div>
+      ${topD ? `<div class="ma-result" style="font-weight:600;margin-top:4px">Most visited:</div>${topD}` : ''}
+      ${rtB ? `<div class="ma-result" style="font-weight:600;margin-top:4px">Recent blocks:</div>${rtB}` : ''}`
+    return
+  }
+
+  if (action === 'suggest') {
+    msgEl.textContent = '💡 Analyzing your habits...'
+    const s = await window.aura.backend('/learn/suggestions')
+    if (s.suggestions?.length) {
+      msgEl.className = 'msg msg-action'
+      msgEl.innerHTML = `<div class="ma-title">💡 AI Suggestions</div>` +
+        s.suggestions.map(sg => `<div class="ma-result" style="padding:5px 0;border-bottom:1px solid var(--border)"><strong>${sg.type}:</strong> ${sg.value} — ${sg.reason}</div>`).join('')
+    } else { msgEl.textContent = "Browse more and I'll have personalized suggestions!" }
+    return
+  }
+
+  if (action === 'vault_fill') {
+    const field = plan.field; let val = ''
+    if (vaultData.personal) val = vaultData.personal[field] || ''
+    if (!val && vaultData.professional) val = vaultData.professional[field] || ''
+    msgEl.textContent = val ? `📋 ${field}: ${val}` : `I don't have "${field}" in your vault. Add it at aura://vault`
+    return
+  }
+
+  if (action === 'settings') { showPage('aura://settings/' + (plan.section || 'profile')); msgEl.textContent = '⚙️ Opening settings...'; return }
+  if (action === 'vault') { showPage('aura://vault'); msgEl.textContent = '🔐 Opening vault...'; return }
+  if (action === 'downloads') { showPage('aura://downloads'); msgEl.textContent = '⬇ Opening downloads...'; return }
+
+  if (action === 'rollback') {
+    const r = await window.aura.backend('/audit/rollback')
+    msgEl.textContent = r.message || 'Rolled back.'
+    if (r.success) { profile = await window.aura.getProfile() || {}; blockedSites = profile.blocked_sites || []; updateFirewall(); loadBlockedTags() }
+    return
+  }
+
+  // Unknown action — show message
+  msgEl.textContent = plan.message || `Done. (${action})`
+}
+
+function addMsg(type, text) {
+  const msgs = document.getElementById('chatMessages')
+  const div = document.createElement('div')
+  div.className = `msg msg-${type}`; div.textContent = text
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight; return div
+}
+
+// ═══════════════════════════════════════════
+// VAULT
+// ═══════════════════════════════════════════
+function loadVaultUI() {
+  const d = vaultData
+  if (d.personal)      ['name','email','phone','location','dob','address'].forEach(k => { const el = document.getElementById('v-'+k); if (el) el.value = d.personal[k] || '' })
+  if (d.professional)  ['jobtitle','company','linkedin','github','skills'].forEach(k => { const el = document.getElementById('v-'+k); if (el) el.value = d.professional[k] || '' })
+  if (d.resume)        ['bio','education','experience'].forEach(k => { const el = document.getElementById('v-'+k); if (el) el.value = d.resume[k] || '' })
+  if (d.notes)         { const el = document.getElementById('v-notes'); if (el) el.value = d.notes.content || '' }
+  renderCustomItems()
+}
+function saveVault(section) {
+  if (section === 'personal')      vaultData.personal      = {name:document.getElementById('v-name').value,email:document.getElementById('v-email').value,phone:document.getElementById('v-phone').value,location:document.getElementById('v-location').value,dob:document.getElementById('v-dob').value,address:document.getElementById('v-address').value}
+  if (section === 'professional')  vaultData.professional  = {jobtitle:document.getElementById('v-jobtitle').value,company:document.getElementById('v-company').value,linkedin:document.getElementById('v-linkedin').value,github:document.getElementById('v-github').value,skills:document.getElementById('v-skills').value}
+  if (section === 'resume')        vaultData.resume        = {bio:document.getElementById('v-bio').value,education:document.getElementById('v-education').value,experience:document.getElementById('v-experience').value}
+  if (section === 'notes')         vaultData.notes         = {content:document.getElementById('v-notes').value}
+  profile.vault = vaultData; saveProfile()
+  addMsg('system', `✅ ${section} saved to vault.`)
+}
+function addCustomItem() {
+  if (!vaultData.custom) vaultData.custom = []
+  vaultData.custom.push({ id: Date.now(), title: 'New Item', value: '' })
+  renderCustomItems()
+}
+function renderCustomItems() {
+  const c = document.getElementById('customItems'); if (!c) return
+  const items = vaultData.custom || []
+  c.innerHTML = items.map((item, i) => `
+    <div class="custom-item">
+      <div class="custom-item-hdr">
+        <input style="background:none;border:none;color:var(--text);font-size:12px;font-weight:600;outline:none;flex:1;font-family:var(--font)" value="${item.title||''}" oninput="vaultData.custom[${i}].title=this.value" placeholder="Title"/>
+        <button class="custom-item-del" onclick="deleteCustomItem(${i})">×</button>
+      </div>
+      <textarea class="vault-textarea" style="min-height:60px" placeholder="Content..." oninput="vaultData.custom[${i}].value=this.value">${item.value||''}</textarea>
+    </div>`).join('')
+}
+function deleteCustomItem(i) { vaultData.custom.splice(i, 1); renderCustomItems(); profile.vault = vaultData; saveProfile() }
+
+// ═══════════════════════════════════════════
+// DOWNLOADS
+// ═══════════════════════════════════════════
+async function loadDownloads() {
+  if (!window.aura) return
+  const data = await window.aura.backend('/downloads/list')
+  const container = document.getElementById('downloadsList')
+  if (!container) return
+  if (!data.downloads?.length) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0">No downloads yet.<br><span style="font-size:11px;opacity:.6">Files you download will appear here automatically.</span></p>'
+    return
+  }
+  container.innerHTML = data.downloads.map(d => `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:26px;flex-shrink:0">${getFileIcon(d.filename)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.filename||'Unknown'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.url||''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${(d.started_at||'').split('T')[0]||''} · ${d.size||'Unknown size'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span style="font-size:10px;padding:2px 8px;border-radius:12px;background:${d.status==='completed'?'rgba(16,185,129,.15)':'rgba(245,158,11,.15)'};color:${d.status==='completed'?'var(--green)':'var(--orange)'};border:1px solid ${d.status==='completed'?'rgba(16,185,129,.3)':'rgba(245,158,11,.3)'}">${d.status||'unknown'}</span>
+        <div style="display:flex;gap:6px">
+          ${d.path ? `<button onclick="window.aura.showInFolder('${d.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');" style="background:none;border:1px solid var(--border2);border-radius:6px;color:var(--muted);cursor:pointer;font-size:11px;padding:3px 8px">Show</button>` : ''}
+          <button onclick="deleteDownload(${d.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px;line-height:1">×</button>
+        </div>
+      </div>
+    </div>`).join('')
+}
+function getFileIcon(filename) {
+  if (!filename) return '📄'
+  const ext = (filename.split('.').pop() || '').toLowerCase()
+  return {exe:'⚙️',msi:'⚙️',pdf:'📕',zip:'🗜️',rar:'🗜️',gz:'🗜️',mp4:'🎬',mkv:'🎬',avi:'🎬',mp3:'🎵',wav:'🎵',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',svg:'🖼️',docx:'📝',doc:'📝',xlsx:'📊',csv:'📊',pptx:'📊',apk:'📱',dmg:'💿',iso:'💿',py:'🐍',js:'📜',html:'🌐',css:'🎨'}[ext] || '📄'
+}
+async function deleteDownload(id) {
+  await window.aura.backend('/downloads/' + id, null, 'DELETE')
+  loadDownloads()
+}
+async function clearDownloads() {
+  if (!confirm('Clear all download history?')) return
+  await window.aura.backend('/downloads', null, 'DELETE')
+  loadDownloads()
+}
+
+// ═══════════════════════════════════════════
+// QUICK SITES
+// ═══════════════════════════════════════════
+function updateQuickSites(sites) {
+  const container = document.getElementById('quickSites')
+  if (!container || !sites?.length) return
+  container.innerHTML = sites.map(s => `
+    <div class="quick-site" onclick="navigate('https://${s.domain}')">
+      ${s.emoji||'🌐'} ${s.label||s.domain}
+    </div>`).join('')
+}
+
+// ═══════════════════════════════════════════
+// STATS + FIREWALL
+// ═══════════════════════════════════════════
+async function loadStats() {
+  if (!window.aura) return
+  try {
+    const s = await window.aura.backend('/stats')
+    document.getElementById('wToday').textContent = `${s.today_visits||0} visits`
+    document.getElementById('wTopDomain').textContent = s.top_domains?.[0] ? `Top: ${s.top_domains[0].domain}` : 'No data yet'
+    document.getElementById('wVisits').textContent = `${s.total_visits||0} total · ${s.realtime_blocked_today||0} rt blocked`
+  } catch(e) {}
+}
+function updateFirewall() {
+  const n = blockedSites.length
+  document.getElementById('sbFirewall').textContent = `🛡️ ${n} blocked`
+  document.getElementById('wFirewallSub').textContent = `${n} site${n===1?'':'s'} blocked`
+  document.getElementById('wFirewall').textContent = n > 0 ? 'Active' : 'Off'
+  const bc = document.getElementById('blockedCount'); if (bc) bc.textContent = n
+}
+function updateNewtab() {
+  const h = new Date().getHours()
+  const g = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+  document.getElementById('ntGreeting').querySelector('h1').innerHTML = `${g}, <span id="ntName">${profile.first_name||'friend'}.</span>`
+  if (profile.configured) document.getElementById('ntConfigHint').style.display = 'none'
+}
+function handleNtSearch(e) {
+  if (e.key !== 'Enter') return
+  const val = e.target.value.trim(); if (!val) return
+  if (val.toLowerCase().startsWith('ai:') || val.toLowerCase().startsWith('ask:')) {
+    if (!aiOpen) toggleAI()
+    document.getElementById('chatInput').value = val.replace(/^(ai:|ask:)/i, '').trim()
+    sendChat()
+  } else { navigate(val) }
+}
+function updateClock() { document.getElementById('sbTime').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }
+setInterval(updateClock, 1000); updateClock()
+
+// ═══════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 't') { e.preventDefault(); openNewTab() }
+  if (e.ctrlKey && e.key === 'w') { e.preventDefault(); closeTab(activeTabId) }
+  if (e.ctrlKey && e.key === 'l') { e.preventDefault(); document.getElementById('addressBar').select() }
+  if (e.ctrlKey && e.key === ',') { e.preventDefault(); showPage('aura://settings') }
+  if (e.ctrlKey && e.shiftKey && e.key === 'A') { e.preventDefault(); toggleAI() }
+  if (e.ctrlKey && e.shiftKey && e.key === 'V') { e.preventDefault(); showPage('aura://vault') }
+  if (e.ctrlKey && e.shiftKey && e.key === 'D') { e.preventDefault(); showPage('aura://downloads') }
+  if (e.ctrlKey && e.key === 'r') { e.preventDefault(); navReload() }
+})
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init() {
+  if (window.aura) {
+    try {
+      profile = await window.aura.getProfile() || {}
+      blockedSites = profile.blocked_sites || []
+      if (profile.vault) vaultData = profile.vault
+      const th = profile.theme
+      if (th) { if (typeof th === 'object') applyTheme(th); else applyTheme(PRESETS[th?.replace(/-/g,'_')] || PRESETS.dark_professional) }
+      if (profile.active_mode) setMode(profile.active_mode, profile.realtime_context || '')
+      if (profile.helpful_sites?.length) updateQuickSites(profile.helpful_sites)
+    } catch(e) { console.error('Init profile error:', e) }
+  }
+  createTab('aura://home', 'New Tab')
+  updateNewtab(); updateFirewall()
+  if (!profile.configured) document.getElementById('ntConfigHint').style.display = 'inline'
+  else { document.getElementById('ntConfigHint').style.display = 'none'; loadStats() }
+  if (window.aura) {
+    window.aura.backend('/').then(r => {
+      document.getElementById('sbBackend').textContent = r.status ? 'Backend ✓' : 'Backend ✗'
+    }).catch(() => { document.getElementById('sbBackend').textContent = 'Backend offline' })
+    window.aura.onDownloadStarted(data => {
+      addMsg('system', `⬇ Downloading: ${data.filename}`)
+      if (currentUrl === 'aura://downloads') loadDownloads()
+    })
+    window.aura.onDownloadProgress(data => {})
+    window.aura.onDownloadDone(data => {
+      addMsg('system', `✅ Downloaded: ${data.filename}`)
+      if (currentUrl === 'aura://downloads') loadDownloads()
+    })
+  }
+}
+init()
+</script>
+</body>
+</html>

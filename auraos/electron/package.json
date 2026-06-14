@@ -1,0 +1,12 @@
+{
+  "name": "auraos",
+  "version": "1.0.0",
+  "description": "AI-powered browser",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^28.0.0"
+  }
+}
