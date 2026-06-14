@@ -4,9 +4,10 @@
   "description": "AI-powered browser",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron . --no-sandbox --disable-gpu-sandbox",
+    "dev": "electron . --no-sandbox --disable-gpu-sandbox --enable-logging"
   },
-  "dependencies": {
+  "devDependencies": {
     "electron": "^28.0.0"
   }
 }

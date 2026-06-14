@@ -772,18 +772,34 @@ async function navigate(input) {
 }
 function loadWebview(url, tabId) {
   const content = document.getElementById('contentArea')
-  if (tabWebviews[tabId]) { try { tabWebviews[tabId].remove() } catch(x) {} }
-  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = '' })
-  Object.values(tabWebviews).forEach(wv => { if (wv) wv.style.display = 'none' })
+
+  // Remove old webview for this tab
+  if (tabWebviews[tabId]) {
+    try { tabWebviews[tabId].remove() } catch(x) {}
+    delete tabWebviews[tabId]
+  }
+
+  // Hide everything else
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active'); p.style.display = ''
+  })
+  Object.values(tabWebviews).forEach(wv => {
+    if (wv && wv.parentNode) wv.style.display = 'none'
+  })
 
   const wv = document.createElement('webview')
-  wv.src = url
-  wv.partition = 'persist:main'
-  wv.setAttribute('partition', 'persist:main')
+
+  // These attributes MUST be set before appending to DOM
+  wv.setAttribute('src', url)
+  wv.setAttribute('partition', 'persist:browser')
   wv.setAttribute('allowpopups', 'true')
-  wv.setAttribute('webpreferences', 'contextIsolation=false, javascript=yes, images=yes, plugins=yes')
+  wv.setAttribute('disablewebsecurity', 'true')
+  wv.setAttribute('webpreferences', 'javascript=yes, images=yes, javascript=yes, web-security=no')
   wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-  wv.style.cssText = 'flex:1;width:100%;height:100%;border:none;display:flex;min-height:0;'
+
+  wv.style.cssText = 'flex:1;width:100%;height:100%;border:none;display:block;min-height:0;'
+
+  // Append FIRST, then add listeners
   content.appendChild(wv)
   tabWebviews[tabId] = wv
 
@@ -791,6 +807,7 @@ function loadWebview(url, tabId) {
     if (tabId === activeTabId) document.getElementById('addrIcon').textContent = '🔄'
     updateTab(tabId, { title: 'Loading...' })
   })
+
   wv.addEventListener('did-finish-load', () => {
     const title = wv.getTitle() || url
     const newUrl = wv.getURL()
@@ -802,26 +819,39 @@ function loadWebview(url, tabId) {
     }
     if (window.aura) window.aura.backend('/log/visit', { url: newUrl, duration: 0 })
   })
+
   wv.addEventListener('did-fail-load', e => {
-    if (e.errorCode !== -3 && e.errorCode !== -1) {
-      updateTab(tabId, { title: 'Error', favicon: '⚠️' })
-      console.error('Load failed:', e.errorCode, e.errorDescription, url)
-    }
+    // -3 = aborted (normal), -1 = failed
+    if (e.errorCode === -3) return
+    console.error('Webview load failed:', e.errorCode, e.errorDescription, url)
+    updateTab(tabId, { title: 'Failed to load', favicon: '⚠️' })
   })
+
   wv.addEventListener('did-navigate', e => {
-    if (tabId === activeTabId) { document.getElementById('addressBar').value = e.url; currentUrl = e.url }
+    if (tabId === activeTabId) {
+      document.getElementById('addressBar').value = e.url
+      currentUrl = e.url
+    }
     updateTab(tabId, { url: e.url })
   })
+
   wv.addEventListener('did-navigate-in-page', e => {
-    if (tabId === activeTabId && e.isMainFrame) { document.getElementById('addressBar').value = e.url; currentUrl = e.url }
+    if (tabId === activeTabId && e.isMainFrame) {
+      document.getElementById('addressBar').value = e.url
+      currentUrl = e.url
+    }
   })
+
   wv.addEventListener('page-title-updated', e => {
-    updateTab(tabId, { title: (e.title || url).substring(0, 30) })
+    updateTab(tabId, { title: (e.title || '').substring(0, 30) || 'Loading...' })
   })
+
   wv.addEventListener('will-navigate', async e => {
     if (!activeMode || activeMode === 'normal_mode') return
-    let d = ''; try { d = new URL(e.url).hostname.replace(/^www\./, '') } catch(x) {}
-    if (!d || e.url.includes('google.com/search') || e.url.includes('duckduckgo.com')) return
+    let d = ''
+    try { d = new URL(e.url).hostname.replace(/^www\./, '') } catch(x) {}
+    if (!d) return
+    if (e.url.includes('google.com/search') || e.url.includes('duckduckgo.com')) return
     if (window.aura) {
       const sc = await window.aura.checkBlocked(e.url)
       if (sc?.blocked) { wv.stop(); showBlocked(d, 'Block list.'); return }
@@ -829,7 +859,11 @@ function loadWebview(url, tabId) {
     const rt = await checkSiteRealtime(d)
     if (rt) { wv.stop(); showBlocked(d, 'AI realtime block.', true) }
   })
-  wv.addEventListener('new-window', e => { createTab(e.url, 'New Tab') })
+
+  wv.addEventListener('new-window', e => {
+    e.preventDefault()
+    createTab(e.url, 'New Tab')
+  })
 }
 
 function routeInternalPage(url) {
