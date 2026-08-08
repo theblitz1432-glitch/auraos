@@ -1,0 +1,29 @@
+{
+  "system_name": "AuraOS",
+  "version": "1.0.0-aura",
+  "model_engine": "aura-pro-v1",
+  "temperature": 0.7,
+  "theme_accent": "blue",
+  "auto_approve_plans": true,
+  "hardware_acceleration": true,
+  "max_history_items": 50,
+  "security_sandbox": true,
+  "study_mode_active": true,
+  "active_theme": "professional-dark",
+  "pinned_sites": [
+    "GitHub",
+    "Kaggle",
+    "Google Scholar",
+    "LeetCode"
+  ],
+  "blocked_websites": [
+    "instagram.com",
+    "facebook.com",
+    "x.com",
+    "twitter.com"
+  ],
+  "cricket_widget_enabled": true,
+  "cricket_score": "India 184/4 \u2014 18.2 overs",
+  "page_summarization": true,
+  "applied_plan_title": "Tailored Data Science & High-Focus Environment Plan"
+}

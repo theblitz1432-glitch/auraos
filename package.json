@@ -1,0 +1,33 @@
+{
+  "name": "aura-os",
+  "version": "1.0.0",
+  "description": "AuraOS Desktop - Next-Gen Intent-Driven Operating Environment",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "node scripts/watch-electron.js",
+    "build": "npm run type-check && vite build && tsc -p electron/tsconfig.json",
+    "type-check": "tsc --noEmit && tsc -p electron/tsconfig.json --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^0.475.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "electron": "^34.2.0",
+    "esbuild": "^0.25.0",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  }
+}
